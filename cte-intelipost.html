@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelipost - Conversor & Analisador de CT-e</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --warning: #ea580c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-light);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-select-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.5rem 0;
+        }
+
+        .file-select-area p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .file-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: fit-content;
+            font-size: 0.95rem;
+        }
+
+        .file-label:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .file-label svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        #fileName {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            padding: 0.5rem 0.75rem;
+            background: #f1f5f9;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        button {
+            margin-top: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        pre {
+            background-color: #0f172a;
+            color: #38bdf8;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            height: 350px;
+        }
+
+        .alert-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .alert-warning {
+            background-color: #fff7ed;
+            border: 1px solid #ffedd5;
+            color: var(--warning);
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            border: 1px solid #dcfce7;
+            color: var(--success);
+        }
+
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .mapping-table th, .mapping-table td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .mapping-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-req { background-color: #fee2e2; color: #ef4444; }
+        .badge-opt { background-color: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Analisador & Conversor: CT-e para Intelipost</h1>
+        <p>Selecione um arquivo XML de CT-e para gerar o "De-Para" da API <code>/shipment_order</code>.</p>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>1. Importar CT-e (.xml)</h2>
+
+            <div class="file-select-area">
+                <p>Selecione um arquivo XML do CT-e no seu computador.</p>
+
+                <label class="file-label" for="fileInput">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Selecionar arquivo XML
+                </label>
+
+                <input type="file" id="fileInput" accept=".xml">
+                <span id="fileName"></span>
+            </div>
+
+            <div id="analiseAlert" class="alert-box alert-warning" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+            <h2>2. Payload Sugerido (Intelipost API)</h2>
+            <pre id="jsonOutput">// O JSON gerado aparecerá aqui logo após a importação...</pre>
+            <button onclick="copiarJson()" style="background-color: #475569;">Copiar JSON</button>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 2rem;">
+        <h2>Regras de Negócio e De-Para Aplicado</h2>
+        <table class="mapping-table">
+            <thead>
+                <tr>
+                    <th>Campo Intelipost</th>
+                    <th>Origem no CT-e (Tag XML)</th>
+                    <th>Tipo Obrigariedade</th>
+                    <th>Valor Extraído/Regra</th>
+                </tr>
+            </thead>
+            <tbody id="tableMappingBody">
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-light);">Importe um arquivo XML para visualizar o mapeamento dinâmico.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const alertBox = document.getElementById('analiseAlert');
+
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length) {
+                lidarComArquivo(fileInput.files[0]);
+            }
+        });
+
+        function lidarComArquivo(file) {
+            if (file.type !== "text/xml" && !file.name.endsWith('.xml')) {
+                exibirErro("Por favor, selecione apenas arquivos no formato XML.");
+                return;
+            }
+
+            fileNameSpan.textContent = file.name;
+            fileNameSpan.style.display = "block";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                processarCteXml(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function exibirErro(mensagem) {
+            alertBox.className = "alert-box alert-warning";
+            alertBox.innerHTML = `<strong>Atenção:</strong> ${mensagem}`;
+            alertBox.style.display = "block";
+            document.getElementById('jsonOutput').textContent = "// Falha no processamento.";
+        }
+
+        function processarCteXml(xmlText) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+                if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                    throw new Error("Erro de formatação no arquivo XML. Verifique a estrutura interna.");
+                }
+
+                const getTagValue = (tagName, parent = xmlDoc) => {
+                    const elements = parent.getElementsByTagName(tagName);
+                    return elements.length > 0 ? elements[0].textContent : null;
+                };
+
+                const nCT = getTagValue("nCT");
+                const nPedido = xmlText.match(/N PEDIDO:\s*(\d+)/)?.[1] || null;
+                const orderNumber = nPedido ? `${nCT}-${nPedido}` : (nCT || "NÃO_ENCONTRADO");
+
+                const vTPrest = getTagValue("vTPrest");
+                const dhEmi = getTagValue("dhEmi");
+                const vCarga = getTagValue("vCarga");
+                const qCarga = getTagValue("qCarga");
+                const pesoReal = xmlDoc.querySelector('infQ[tpMed="PESO REAL"] qCarga')?.textContent || getTagValue("qCarga");
+                const chaveNFe = getTagValue("chave");
+
+                const originCnpj = getTagValue("CNPJ", xmlDoc.getElementsByTagName("rem")[0]);
+                const originCep = getTagValue("CEP", xmlDoc.getElementsByTagName("rem")[0]);
+
+                const destNode = xmlDoc.getElementsByTagName("dest")[0];
+                const destNome = getTagValue("xNome", destNode) || "";
+                const partesNome = destNome.split(" ");
+                const firstName = partesNome[0] || "Não Informado";
+                const lastName = partesNome.slice(1).join(" ") || "Não Informado";
+
+                const intelipostPayload = {
+                    "order_number": orderNumber,
+                    "sales_order_number": nPedido || nCT || "",
+                    "delivery_method_id": 1,
+                    "created": dhEmi || new Date().toISOString(),
+                    "shipped_date": dhEmi || new Date().toISOString(),
+                    "estimated_delivery_date": xmlDoc.querySelector('comData dProg')?.textContent ? `${xmlDoc.querySelector('comData dProg').textContent}T18:00:00-03:00` : "",
+                    "scheduled": false,
+                    "sales_channel": getTagValue("xNome", xmlDoc.getElementsByTagName("rem")[0]) || "B2B",
+                    "shipment_order_type": "NORMAL",
+                    "customer_shipping_costs": 0,
+                    "provider_shipping_costs": vTPrest ? parseFloat(vTPrest) : 0,
+                    "origin_zip_code": originCep ? originCep.replace(/\D/g, "") : "",
+                    "origin_federal_tax_payer_id": originCnpj ? originCnpj.replace(/\D/g, "") : "",
+                    "end_customer": {
+                        "first_name": firstName,
+                        "last_name": lastName,
+                        "email": "notificar@cliente.com.br",
+                        "phone": getTagValue("fone", destNode) || "",
+                        "cellphone": getTagValue("fone", destNode) || "",
+                        "is_company": getTagValue("CNPJ", destNode) ? true : false,
+                        "federal_tax_payer_id": (getTagValue("CNPJ", destNode) || getTagValue("CPF", destNode) || "").replace(/\D/g, ""),
+                        "shipping_country": getTagValue("xPais", destNode) || "Brasil",
+                        "shipping_state": getTagValue("UF", destNode) || "",
+                        "shipping_city": getTagValue("xMun", destNode) || "",
+                        "shipping_address": getTagValue("xLgr", destNode) || "",
+                        "shipping_number": getTagValue("nro", destNode) || "SN",
+                        "shipping_quarter": getTagValue("xBairro", destNode) || "",
+                        "shipping_additional": getTagValue("xCpl", destNode) || "",
+                        "shipping_zip_code": getTagValue("CEP", destNode) ? getTagValue("CEP", destNode).replace(/\D/g, "") : ""
+                    },
+                    "shipment_order_volume_array": [
+                        {
+                            "name": "Volume 1",
+                            "shipment_order_volume_number": 1,
+                            "volume_type_code": "BOX",
+                            "weight": pesoReal ? parseFloat(pesoReal) : 1,
+                            "width": 30,
+                            "height": 30,
+                            "length": 30,
+                            "products_nature": getTagValue("proPred") || "DIVERSOS",
+                            "products_quantity": qCarga ? parseInt(qCarga) : 1,
+                            "products": [
+                                {
+                                    "category": "Geral",
+                                    "description": getTagValue("proPred") || "Produtos descritos no CT-e",
+                                    "price": vCarga ? parseFloat(vCarga) : 0,
+                                    "quantity": qCarga ? parseInt(qCarga) : 1,
+                                    "sku": "SKU-PADRAO"
+                                }
+                            ],
+                            "shipment_order_volume_invoice": {
+                                "invoice_series": "1",
+                                "invoice_number": "Ver Chave NF",
+                                "invoice_key": chaveNFe || "",
+                                "invoice_date": dhEmi || "",
+                                "invoice_total_value": vCarga ? parseFloat(vCarga) : 0,
+                                "invoice_products_value": vCarga ? parseFloat(vCarga) : 0,
+                                "invoice_cfop": getTagValue("CFOP") || ""
+                            }
+                        }
+                    ]
+                };
+
+                document.getElementById('jsonOutput').textContent = JSON.stringify(intelipostPayload, null, 4);
+                gerarTabelaDePara(intelipostPayload, chaveNFe);
+
+                alertBox.className = "alert-box alert-success";
+                alertBox.innerHTML = `<strong>Sucesso!</strong> Arquivo processado.<br>
+                <small>As informações fiscais foram traduzidas para a semântica de payloads da API Intelipost.</small>`;
+                alertBox.style.display = "block";
+
+            } catch (error) {
+                exibirErro(error.message);
+            }
+        }
+
+        function gerarTabelaDePara(payload, chaveNFe) {
+            const tbody = document.getElementById('tableMappingBody');
+
+            const mapeamentos = [
+                { campo: "order_number", tag: "nCT + N PEDIDO (xObs)", obr: "Required", valor: payload.order_number },
+                { campo: "provider_shipping_costs", tag: "vTPrest", obr: "Required (c/ Cotação)", valor: `R$ ${payload.provider_shipping_costs}` },
+                { campo: "origin_federal_tax_payer_id", tag: "rem -> CNPJ", obr: "Required (Multi CD)", valor: payload.origin_federal_tax_payer_id },
+                { campo: "end_customer.federal_tax_payer_id", tag: "dest -> CNPJ / CPF", obr: "Required", valor: payload.end_customer.federal_tax_payer_id },
+                { campo: "end_customer.shipping_zip_code", tag: "dest -> CEP", obr: "Required", valor: payload.end_customer.shipping_zip_code },
+                { campo: "shipment_order_volume_array[0].weight", tag: "infQ[tpMed='PESO REAL']", obr: "Required", valor: `${payload.shipment_order_volume_array[0].weight} KG` },
+                { campo: "invoice_key", tag: "infDoc -> infNFe -> chave", obr: "Required", valor: chaveNFe || "Não encontrada" }
+            ];
+
+            tbody.innerHTML = mapeamentos.map(m => `
+                <tr>
+                    <td><code>${m.campo}</code></td>
+                    <td><code>&lt;${m.tag}&gt;</code></td>
+                    <td><span class="badge ${m.obr.includes('Required') ? 'badge-req' : 'badge-opt'}">${m.obr}</span></td>
+                    <td>${m.valor}</td>
+                </tr>
+            `).join('');
+        }
+
+        function copiarJson() {
+            const jsonText = document.getElementById('jsonOutput').textContent;
+            navigator.clipboard.writeText(jsonText).then(() => {
+                alert('JSON copiado para a área de transferência!');
+            }).catch(err => {
+                alert('Erro ao copiar JSON.');
+            });
+        }
+    </script>
+</body>
+</html>
